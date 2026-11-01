@@ -4,11 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Мои Цели</title>
-    <!-- Подключаем скрипт Telegram Mini App -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, sans-serif;
             background-color: var(--tg-theme-bg-color, #ffffff);
             color: var(--tg-theme-text-color, #000000);
             padding: 15px;
@@ -19,43 +18,54 @@
             border-radius: 12px;
             padding: 15px;
             margin-bottom: 12px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
-        .title {
-            font-size: 18px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        .deadline {
-            font-size: 13px;
-            color: var(--tg-theme-hint-color, #888888);
-            margin-bottom: 10px;
-        }
-        .subgoal {
-            display: flex;
-            align-items: center;
-            margin-top: 6px;
-        }
-        .subgoal input {
-            margin-right: 8px;
-        }
+        .title { font-size: 18px; font-weight: bold; margin-bottom: 5px; }
+        .deadline { font-size: 13px; color: #888888; margin-bottom: 10px; }
+        .subgoal { display: flex; align-items: center; margin-top: 6px; }
+        .subgoal input { margin-right: 8px; }
     </style>
 </head>
 <body>
     <h2>🎯 Мои Цели</h2>
-    <div id="goals-list">
-        <!-- Пример карточки задачи -->
-        <div class="card">
-            <div class="title">Очистить диск С</div>
-            <div class="deadline">📅 Дедлайн: 2026-11-08</div>
-            <div class="subgoal"><input type="checkbox"> Удалить временные файлы</div>
-            <div class="subgoal"><input type="checkbox"> Очистить корзину</div>
-        </div>
-    </div>
+    <div id="goals-list">Загрузка задач...</div>
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Разворачиваем на весь экран
+        tg.expand();
+
+        const userId = tg.initDataUnsafe?.user?.id || 0;
+
+        async function loadGoals() {
+            try {
+                const response = await fetch(`/api/goals/${userId}`);
+                const goals = await response.json();
+                const container = document.getElementById('goals-list');
+                
+                if (goals.length === 0) {
+                    container.innerHTML = "<p>У вас пока нет сохраненных целей.</p>";
+                    return;
+                }
+
+                container.innerHTML = "";
+                goals.forEach(goal => {
+                    let subgoalsHtml = goal.subgoals.map(sub => 
+                        `<div class="subgoal"><input type="checkbox"> ${sub}</div>`
+                    ).join("");
+
+                    container.innerHTML += `
+                        <div class="card">
+                            <div class="title">${goal.title}</div>
+                            <div class="deadline">📅 Дедлайн: ${goal.deadline}</div>
+                            ${subgoalsHtml}
+                        </div>
+                    `;
+                });
+            } catch (e) {
+                document.getElementById('goals-list').innerText = "Ошибка загрузки данных.";
+            }
+        }
+
+        loadGoals();
     </script>
 </body>
 </html>
